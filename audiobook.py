@@ -60,10 +60,10 @@ class Audiobook:
         filename = str(filename).strip().replace(' ', '_')
         return re.sub(r'(?u)[^-\w.]', '', filename)
 
-    def _split(self, chapter, out_path):
+    def _split(self, idx, chapter, out_path):
         files = None
 
-        out_path = os.path.join(out_path, self._sanitize_filename(chapter.title) + '.mp3')
+        out_path = os.path.join(out_path, self._sanitize_filename("{} ".format(idx) + chapter.title) + '.mp3')
 
         if chapter.end_anchor is Anchor.Unknown:
             # split till the end
@@ -88,8 +88,10 @@ class Audiobook:
         chapters = self.merged_chapters()
         out_path = self._create_subpath(out_subdir)
 
+        idx = 1
         for chapter in chapters:
-            self._split(chapter, out_path)
+            self._split(idx, chapter, out_path)
+            idx += 1
 
 
 class AudiobookPart:
@@ -115,8 +117,8 @@ class AudiobookPart:
         markers = ET.fromstring(raw_markers)
         chapters = []
         for marker in markers:
-            title = marker.find('Name').text
-            start_time = marker.find('Time').text
+            title = marker.find('Name').text.strip()
+            start_time = marker.find('Time').text.strip()
             chapters.append(Chapter(title, Anchor(self._filepath, start_time)))
         return chapters
 
@@ -224,5 +226,5 @@ class Chapter:
 
 
 if __name__ == '__main__':
-    ab = Audiobook('/run/media/rahul/My Passport/Audiobooks/Dennis Lehane - Kenzie & Gennaro-Book 1-A Drink Before the War -/')
+    ab = Audiobook('/run/media/rahul/My Passport/Audiobooks/George R. R. Martin - A Song of Ice and Fire-Book 1-A Game of Thrones - 1996/')
     ab.create_chapters('merged')
