@@ -36,12 +36,6 @@ class Audiobook:
     def parts(self):
         return self._parts + []
 
-    def _create_subpath(self, subdir):
-        out_path = os.path.join(self._dirpath, subdir)
-        if not os.path.exists(out_path):
-            os.makedirs(out_path)
-        return out_path
-
     def merged_chapters(self):
         chapters = []
         for part in self._parts:
@@ -56,8 +50,11 @@ class Audiobook:
 
         return merged_chapters
 
-    def _merge(self, *files):
-        pass
+    def _create_subpath(self, subdir):
+        out_path = os.path.join(self._dirpath, subdir)
+        if not os.path.exists(out_path):
+            os.makedirs(out_path)
+        return out_path
 
     def _sanitize_filename(self, filename):
         filename = str(filename).strip().replace(' ', '_')
@@ -92,8 +89,7 @@ class Audiobook:
         out_path = self._create_subpath(out_subdir)
 
         for chapter in chapters:
-            files = self._split(chapter, out_path)
-            self._merge(files)
+            self._split(chapter, out_path)
 
 
 class AudiobookPart:
@@ -143,8 +139,7 @@ class AudiobookPart:
 class Anchor:
     def __init__(self, filepath, time):
         self._filepath = os.path.abspath(filepath) if filepath != '' else ''
-        self._time = time
-        self._time_mm, self._time_ss = self._split_time(self._time) if self._time != '' else ('', '')
+        self._time_hh, self._time_mm, self._time_ss = self._split_time(time) if time.strip() != '' else ('', '', '')
 
     @property
     def filepath(self):
@@ -152,7 +147,11 @@ class Anchor:
 
     @property
     def time(self):
-        return self._time
+        return "{}:{}:{}".format(self._time_hh, self._time_mm, self._time_ss)
+
+    @property
+    def time_hh(self):
+        return self._time_hh
 
     @property
     def time_mm(self):
@@ -166,9 +165,20 @@ class Anchor:
         return int(self._time_mm) == 0 and math.isclose(0.000, float(self._time_ss), abs_tol=0.01)
 
     def _split_time(self, time):
-        mm, ss = time.strip().split(':')
-        assert int(mm) < 60
-        return mm, ss
+        time_split = time.strip().split(':')
+        if len(time_split) == 2:
+            mm, ss = time_split
+            if int(mm) >= 60:
+                hh = str(int(mm) // 60).zfill(2)
+                mm = str(int(mm) % 60).zfill(2)
+            else:
+                hh = '00'
+
+        elif len(time_split) == 3:
+            hh, mm, ss = time_split
+        else:
+            raise Exception("Error while parsing time: {}".format(time))
+        return hh, mm, ss
 
     def __repr__(self):
         if self is Anchor.Unknown:
@@ -214,5 +224,5 @@ class Chapter:
 
 
 if __name__ == '__main__':
-    ab = Audiobook('./test')
+    ab = Audiobook('/run/media/rahul/My Passport/Audiobooks/Dennis Lehane - Kenzie & Gennaro-Book 1-A Drink Before the War -/')
     ab.create_chapters('merged')
